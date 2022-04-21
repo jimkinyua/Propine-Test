@@ -29,16 +29,9 @@ if(parameters.date && parameters.token){// Both Params provided
     })
     .on('end', function () {
 
-      groupedResult = csvData.reduce((acc, curr) => {
-            if(!acc[parameters.token]){
-                acc[parameters.token] = [];
-            }else{
-                if(curr[2] == parameters.token){
-                    acc[parameters.token].push(curr)
-                }
-            }
-            return acc;
-        },[]);
+        GroupArrayAccordingToToken(csvData, parameters.token);
+        CalCulateBalanceForEachToken(groupedResult);
+        CalculateUSDValueForEachSymbol(groupedBalance);
 
         for(let groupName in groupedResult) {
             const accumulated = groupedResult[groupName].reduce((acc, curr)=>{
@@ -51,30 +44,6 @@ if(parameters.date && parameters.token){// Both Params provided
             };
             
         }
-
-        if(groupedBalance){
-            for (let Gname in  groupedBalance){
-                const url = `https://min-api.cryptocompare.com/data/price?fsym=${Gname}&tsyms=USD&api_key=${apiVariables.token}`;
-                if(groupedBalance[Gname].Balance){
-                    axios.get(url)
-                    .then(response => {
-                         groupedApiResult[Gname] = {
-                            LastestBalance: ((groupedBalance[Gname].Balance * response.data.USD))
-                        };
-                        console.log(groupedApiResult);
-        
-                    })
-                    .catch(error => {
-                        console.log(error);
-                    });
-                } else{
-                    console.log('Token Not Found')
-                }   
-            }
-        }
-        
-   
-       
 
     });
 
@@ -107,8 +76,28 @@ function CalculateUSDValueForEachSymbol(arrayWithBalance) {
             })
             .catch(error => {
                 console.log(error);
-            });
+            });   
+    }
 
+    if(arrayWithBalance){// Check if array is empty
+        for (let tokenSymbol in  arrayWithBalance){
+            const url = `https://min-api.cryptocompare.com/data/price?fsym=${tokenSymbol}&tsyms=USD&api_key=${apiVariables.token}`;
+            if(groupedBalance[tokenSymbol].Balance){
+                axios.get(url)
+                .then(response => {
+                     groupedApiResult[tokenSymbol] = {
+                        LastestBalance: ((groupedBalance[tokenSymbol].Balance * response.data.USD))
+                    };
+                    // console.log(groupedApiResult);
+    
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+            } else{
+                console.log('Token Not Found')
+            }   
+        }
     }
 }
 
@@ -125,14 +114,26 @@ function CalCulateBalanceForEachToken(GroupedArray) {
     }
 }
 
-function GroupArrayAccordingToToken(ExraxtedCsvData) {
-    groupedResult = ExraxtedCsvData.reduce((acc, curr) => {
-        if (!acc[curr[2]]) {
-            acc[curr[2]] = [];
-        }
-        acc[curr[2]].push(curr);
-        return acc;
-    }, []);
+function GroupArrayAccordingToToken(ExraxtedCsvData, token=null) {
+
+    if(token == null){//// No Token was provided, Filter with the Symbols that are in the CSV
+        groupedResult = ExraxtedCsvData.reduce((acc, curr) => {
+            if (!acc[curr[2]]) {
+                acc[curr[2]] = [];
+            }
+            acc[curr[2]].push(curr);
+            return acc;
+        }, []);
+    }else{
+        groupedResult = ExraxtedCsvData.reduce((acc, curr) => {
+            if (!acc[token]) {
+                acc[token] = [];
+            }
+            acc[token].push(curr);
+            return acc;
+        }, []);
+    }
+   
     return groupedResult;
 }
 // console.log('sdfgh');
