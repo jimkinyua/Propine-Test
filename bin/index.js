@@ -33,22 +33,23 @@ if(parameters.date && parameters.token){// Both Params provided
         CalCulateBalanceForEachToken(groupedResult);
         CalculateUSDValueForEachSymbol(groupedBalance);
 
-        for(let groupName in groupedResult) {
-            const accumulated = groupedResult[groupName].reduce((acc, curr)=>{
-                acc[curr[1]] += curr[3];
-                return acc; // ← return the accumulator to use for the next round
-            }, {DEPOSIT: 0, WITHDRAWAL: 0})
-
-            groupedBalance[groupName] = {
-                Balance: accumulated['DEPOSIT'] - accumulated['WITHDRAWAL']
-            };
-            
-        }
-
     });
 
 }else if(parameters.date){//Date Provided
     console.log('date provided')
+    
+    inputStream.pipe(new CsvReadableStream({ parseNumbers: true, parseBooleans: true, trim: true }))
+    .on('data', (row)=> {
+        csvData.push(row);
+    })
+    .on('end', function () {
+        //ToDo: Check date Format to be valid
+        GroupArrayAccordingToDate(csvData, parameters.date);
+        CalCulateBalanceForEachToken(groupedResult);
+        CalculateUSDValueForEachSymbol(groupedBalance);
+
+    });
+
 }else{//None Provided
         
     inputStream.pipe(new CsvReadableStream({ parseNumbers: true, parseBooleans: true, trim: true }))
@@ -135,6 +136,38 @@ function GroupArrayAccordingToToken(ExraxtedCsvData, token=null) {
     }
    
     return groupedResult;
+}
+
+function GroupArrayAccordingToDate(ExraxtedCsvData, paramDate) {
+
+    groupedResult = ExraxtedCsvData.reduce((acc, curr) => {
+
+        if(ConvertedCsvTimeStampToDate(curr[0]) == NormalisedDateParameter(paramDate)){ //Group by Token
+            if (!acc[curr[2]]) {
+                acc[curr[2]] = [];
+            }
+            acc[curr[2]].push(curr);
+            return acc;
+        }
+
+        
+    }, []);
+       
+    return groupedResult;
+
+    function ConvertedCsvTimeStampToDate(TimeStampFromCsv) {
+        let date = new Date(TimeStampFromCsv * 1000);
+        let dateFromCSV = date.getDate() + '/' + (date.getMonth()+1) + '/' + date.getFullYear();
+        return dateFromCSV;
+    }
+
+    function NormalisedDateParameter(paramDate) {
+        let dateFromParameter = new Date(paramDate);
+        let normalisedDate = dateFromParameter.getDate() + '/' + (dateFromParameter.getMonth() + 1) + '/' + dateFromParameter.getFullYear();
+        // console.log(dateFromParameter);
+
+        return normalisedDate;
+    }
 }
 // console.log('sdfgh');
 
