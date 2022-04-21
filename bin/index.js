@@ -87,46 +87,53 @@ if(parameters.date && parameters.token){// Both Params provided
             csvData.push(row);
         })
         .on('end', function () {
-
-          groupedResult = csvData.reduce((acc, curr) => {
-                if(!acc[curr[2]]){
-                    acc[curr[2]] = [];
-                }
-                acc[curr[2]].push(curr);
-                return acc;
-            },[]);
-
-            for(let groupName in groupedResult) {
-                const accumulated = groupedResult[groupName].reduce((acc, curr)=>{
-                    acc[curr[1]] += curr[3];
-                    return acc; // ← return the accumulator to use for the next round
-                }, {DEPOSIT: 0, WITHDRAWAL: 0})
-
-                groupedBalance[groupName] = {
-                    Balance: accumulated['DEPOSIT'] - accumulated['WITHDRAWAL']
-                };
-                
-            }
-            
-            for (let Gname in  groupedBalance){
-                axios.get('https://min-api.cryptocompare.com/data/price?fsym=' + Gname + '&tsyms=USD&api_key=a437b4c681a49c9b45382a38c319ed0a795b9180041154d9dc5702e534e72107')
-                .then(response => {
-                     groupedApiResult[Gname] = {
-                        LastestBalance: ((groupedBalance[Gname].Balance * response.data.USD))
-                    };
-                    console.log(groupedApiResult);
-
-                })
-                .catch(error => {
-                    console.log(error);
-                });
-
-            }
-
+            GroupArrayAccordingToToken(csvData);
+            CalCulateBalanceForEachToken(groupedResult);
+            CalculateUSDValueForEachSymbol(groupedBalance);
         });
 
 }
 
 
+
+function CalculateUSDValueForEachSymbol(arrayWithBalance) {
+    for (let Gname in arrayWithBalance) {
+        axios.get('https://min-api.cryptocompare.com/data/price?fsym=' + Gname + '&tsyms=USD&api_key=a437b4c681a49c9b45382a38c319ed0a795b9180041154d9dc5702e534e72107')
+            .then(response => {
+                groupedApiResult[Gname] = {
+                    LastestBalance: ((arrayWithBalance[Gname].Balance * response.data.USD))
+                };
+                console.log(groupedApiResult);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+
+    }
+}
+
+function CalCulateBalanceForEachToken(GroupedArray) {
+    for (let tokenSymbol in GroupedArray) {
+        const accumulated = groupedResult[tokenSymbol].reduce((acc, curr) => {
+            acc[curr[1]] += curr[3];
+            return acc; // ← return the accumulator to use for the next round
+        }, { DEPOSIT: 0, WITHDRAWAL: 0 });
+        groupedBalance[tokenSymbol] = {
+            Balance: accumulated['DEPOSIT'] - accumulated['WITHDRAWAL']
+        };
+
+    }
+}
+
+function GroupArrayAccordingToToken(ExraxtedCsvData) {
+    groupedResult = ExraxtedCsvData.reduce((acc, curr) => {
+        if (!acc[curr[2]]) {
+            acc[curr[2]] = [];
+        }
+        acc[curr[2]].push(curr);
+        return acc;
+    }, []);
+    return groupedResult;
+}
 // console.log('sdfgh');
 
