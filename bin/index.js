@@ -5,7 +5,7 @@ const Fs = require('fs');
 const CsvReadableStream = require('csv-reader');
 const axios = require('axios');
 
-const inputStream = Fs.createReadStream("E:\\Propine\\test.csv", 'utf8');
+const inputStream = Fs.createReadStream("E:\\Propine\\transactions.csv", 'utf8');
 const csvData =[];
 const res = 0;
 var groupedResult =[] ;
